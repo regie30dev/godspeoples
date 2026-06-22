@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(DB_HOST=localhost DB_PORT=5433 DB_USER=postgres DB_PASSWORD=wrongpw DB_NAME=be_god_peoples node src/server.js)",
+      "Bash(echo \"exit code: $?\")",
+      "Bash(npm run *)",
+      "Bash(grep -Ev \"unchanged|^$|^>\")"
+    ]
+  }
+}

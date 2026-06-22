@@ -1,0 +1,37 @@
+{
+  "name": "be-god-peoples",
+  "version": "1.0.0",
+  "description": "Backend service built with Express using the MVC pattern.",
+  "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "dev": "nodemon",
+    "format": "prettier --write \"**/*.{js,json,md}\"",
+    "format:check": "prettier --check \"**/*.{js,json,md}\"",
+    "lint": "echo \"No linter configured yet\" && exit 0",
+    "test": "echo \"No tests configured yet\" && exit 0"
+  },
+  "keywords": [
+    "express",
+    "mvc",
+    "nodejs",
+    "backend"
+  ],
+  "author": "",
+  "license": "  MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^2.2.0",
+    "pg": "^8.22.0",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.8"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4",
+    "prettier": "3.8.4"
+  }
+}
