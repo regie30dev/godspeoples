@@ -55,14 +55,14 @@ Base path: `/api/v1`
 | ------ | ----------------- | --------------------------------------- |
 | GET    | `/health`         | Health/test route                       |
 | POST   | `/images`         | Upload an image (`multipart/form-data`) |
-| GET    | `/images`         | List image metadata (no binary)         |
+| GET    | `/images`         | List image metadata, paginated          |
 | GET    | `/images/:id`     | Get a single image's metadata           |
 | GET    | `/images/:id/raw` | Stream the raw image bytes              |
 | DELETE | `/images/:id`     | Delete an image                         |
 
 ### Upload an image
 
-Accepts **JPG** and **PNG** only (max size from `MAX_FILE_SIZE_MB`, default 5 MB).
+Accepts **JPG** and **PNG** only (max size from `MAX_FILE_SIZE_MB`, default 100 MB).
 Send `multipart/form-data` with file field `image` and a required `name` field:
 
 ```bash
@@ -70,6 +70,51 @@ curl -X POST http://localhost:4000/api/v1/images \
   -F "image=@/path/to/photo.jpg" \
   -F "name=My Photo" \
   -F "description=A test upload"
+```
+
+### List images (paginated)
+
+Returns image **metadata** (the binary is excluded to keep responses light).
+Render each picture by requesting `GET /images/:id/raw`, which streams the bytes
+with the correct content type and is cacheable.
+
+Query parameters:
+
+| Param   | Default | Description                      |
+| ------- | ------- | -------------------------------- |
+| `page`  | `1`     | 1-based page number              |
+| `limit` | `20`    | Items per page (capped at `100`) |
+
+```bash
+curl "http://localhost:4000/api/v1/images?page=2&limit=10"
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "…",
+      "name": "My Photo",
+      "description": "A test upload",
+      "mimeType": "image/png",
+      "size": 12345,
+      "date": "…",
+      "createdAt": "…",
+      "updatedAt": "…"
+    }
+  ],
+  "pagination": {
+    "total": 42,
+    "page": 2,
+    "limit": 10,
+    "totalPages": 5,
+    "hasNextPage": true,
+    "hasPrevPage": true
+  }
+}
 ```
 
 ## Project structure

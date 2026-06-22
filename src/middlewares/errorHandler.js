@@ -2,10 +2,6 @@ import config from '../config/env.js';
 import logger from '../utils/logger.js';
 
 /**
- * Central error handler. Must be registered last (4-arg signature is required
- * for Express to treat it as error middleware).
- */
-/**
  * Maps known third-party/library errors to client-friendly HTTP statuses so
  * they don't surface as opaque 500s.
  */
@@ -28,7 +24,11 @@ const normalizeError = (err) => {
   return { statusCode: err.statusCode ?? 500, message: err.message };
 };
 
-// eslint-disable-next-line no-unused-vars
+/**
+ * Central error handler. Must be registered last; the 4-arg signature (the
+ * unused `_next` included) is required for Express to treat it as error
+ * middleware.
+ */
 const errorHandler = (err, req, res, _next) => {
   const { statusCode, message } = normalizeError(err);
   const isServerError = statusCode >= 500;

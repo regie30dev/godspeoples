@@ -44,7 +44,7 @@ be-god-peoples/
     ├── services/
     │   └── image.service.js # Image data-access layer
     ├── controllers/
-    │   ├── health.controller.js   # Temporary test route handler
+    │   ├── health.controller.js   # Health/liveness route handler
     │   └── image.controller.js    # Upload / list / fetch / serve / delete
     ├── routes/
     │   ├── index.js        # Aggregates feature routes under API prefix
@@ -62,14 +62,14 @@ be-god-peoples/
 
 ### Key endpoints
 
-| Method | Path                     | Purpose                     |
-| ------ | ------------------------ | --------------------------- |
-| GET    | `/api/v1/health`         | Temporary health/test route |
-| POST   | `/api/v1/images`         | Upload an image (JPG/PNG)   |
-| GET    | `/api/v1/images`         | List image metadata         |
-| GET    | `/api/v1/images/:id`     | Get one image's metadata    |
-| GET    | `/api/v1/images/:id/raw` | Stream raw image bytes      |
-| DELETE | `/api/v1/images/:id`     | Delete an image             |
+| Method | Path                     | Purpose                        |
+| ------ | ------------------------ | ------------------------------ |
+| GET    | `/api/v1/health`         | Health/liveness route          |
+| POST   | `/api/v1/images`         | Upload an image (JPG/PNG)      |
+| GET    | `/api/v1/images`         | List image metadata, paginated |
+| GET    | `/api/v1/images/:id`     | Get one image's metadata       |
+| GET    | `/api/v1/images/:id/raw` | Stream raw image bytes         |
+| DELETE | `/api/v1/images/:id`     | Delete an image                |
 
 ### Data models
 
@@ -107,6 +107,55 @@ be-god-peoples/
 ---
 
 ## Change Log
+
+### 2026-06-22 — Housekeeping / cleanup pass (DRY, KISS, YAGNI)
+
+- **Reconciled docs with code.** `imageService.listImages` was reverted to
+  **metadata-only** (binary excluded; clients use `GET /images/:id/raw`). Updated
+  the README "List images" section and API tables (here + README) to match —
+  removed the now-incorrect "with binary / base64 data URI" claims. Pagination
+  params are unchanged.
+- **Removed dead exports** (`models/index.js`): the unused default `models`
+  object and `sequelize` re-export — nothing imported them (only `{ Image }` and
+  `{ syncModels }` are used).
+- **Trimmed unused API** (`utils/ApiError.js`): dropped the never-read
+  `isOperational` option from the constructor (YAGNI). Now `ApiError(status, message)`.
+- **Tidied `errorHandler.js`**: removed a duplicated/misplaced JSDoc block and a
+  stray `eslint-disable` comment (no linter configured); documented why the
+  4-arg `_next` signature is required.
+- **Simplified `server.js`**: `unhandledRejection` now logs and `process.exit(1)`
+  directly instead of re-`throw`ing to bounce through `uncaughtException`.
+- **Relabeled the health endpoint** from "temporary test route" to a real
+  liveness check (controller + route comments) — it's a permanent feature.
+- Fixed `package.json` `license` (`"  MIT"` → `"MIT"`).
+- Verified: all `src` files pass `node --check`, `app.js` imports cleanly, and
+  `prettier --check` is green.
+
+### 2026-06-22 — README updated for pagination + upload size
+
+- Documented the `GET /images` pagination params (`page` default `1`, `limit`
+  default `20`, capped at `100`) in a new "List images (paginated)" section with
+  a `curl` example and the full `{ data, pagination }` response shape (including
+  the base64 data-URI `image` field).
+- Updated the API table row for `GET /images` to "List images (with binary),
+  paginated".
+- Corrected the upload section's max-size note from 5 MB to 100 MB to match the
+  current `MAX_FILE_SIZE_MB` default.
+
+### 2026-06-22 — `GET /images` now returns binary payload + pagination
+
+- Refactored `imageService.listImages` to accept `{ page, limit }` and return
+  `{ data, pagination }` via `findAndCountAll`. Defaults: page 1, limit 20
+  (limit capped at 100); inputs are sanitized to safe positive integers.
+- The binary (BYTEA Buffer) is now **included** and serialized to a base64 data
+  URI (`data:<mimeType>;base64,...`) so the FE can drop it straight into an
+  `<img src>`. (Previously the `image` column was excluded.)
+- `pagination` exposes `total`, `page`, `limit`, `totalPages`, `hasNextPage`,
+  `hasPrevPage`.
+- Controller (`image.controller.js`) reads `page`/`limit` from `req.query` and
+  responds with `{ success: true, data, pagination }`.
+- **Note:** embedding binaries inflates the list response considerably; the
+  `/images/:id/raw` streaming route remains the lighter option for single images.
 
 ### 2026-06-22 — Increased max upload size to 100 MB
 
@@ -202,3 +251,19 @@ be-god-peoples/
   unknown route → structured 404, graceful shutdown confirmed.
 - **Open item:** `.env` is not auto-loaded yet; config relies on defaults +
   process env. (Pending user decision: Node `--env-file` vs `dotenv`.)
+
+### 2026-06-22 — Lighten image list responses (perf)
+
+Context: the FE gallery was loading each picture as a base64 data URI inlined in
+the list response (one image was ~7.6 MB → ~10 MB base64 per record), making the
+`GET /images` payload huge. Switched to metadata-only lists + a cacheable raw
+endpoint (which already existed).
+
+- `services/image.service.js` — `listImages` now excludes the BYTEA column from
+  the query (`attributes: { exclude: ['image'] }`) and returns `row.toMetadata()`
+  per row; no more base64 in list responses. Updated the doc comment.
+- `controllers/image.controller.js` — `serveImage` (`GET /images/:id/raw`) now
+  sets `Cache-Control: public, max-age=31536000, immutable` and an `ETag`, so
+  browsers cache each image after the first fetch.
+- **Verified:** `GET /images` returns metadata only (no `image` field); raw
+  endpoint serves bytes with the new caching headers.

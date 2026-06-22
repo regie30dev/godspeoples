@@ -22,7 +22,7 @@
     "backend"
   ],
   "author": "",
-  "license": "  MIT",
+  "license": "MIT",
   "dependencies": {
     "express": "^4.19.2",
     "multer": "^2.2.0",

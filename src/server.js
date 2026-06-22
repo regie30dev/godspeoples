@@ -42,10 +42,11 @@ const startServer = async () => {
   ['SIGINT', 'SIGTERM'].forEach((signal) => process.on(signal, () => shutdown(signal)));
 };
 
-// Fail fast on unexpected programmer errors.
+// Fail fast on unexpected programmer errors — log and exit so an orchestrator
+// can restart from a known-good state.
 process.on('unhandledRejection', (reason) => {
   logger.error('Unhandled promise rejection:', reason);
-  throw reason;
+  process.exit(1);
 });
 
 process.on('uncaughtException', (error) => {

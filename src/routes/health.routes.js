@@ -5,7 +5,7 @@ import asyncHandler from '../utils/asyncHandler.js';
 
 const router = Router();
 
-// Temporary test route to verify the server is up and running.
+// Liveness check — confirms the server is up and running.
 router.get('/', asyncHandler(healthController.getHealth));
 
 export default router;

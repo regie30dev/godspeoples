@@ -33,11 +33,13 @@ const uploadImage = async (req, res) => {
 };
 
 /**
- * GET / — list all image metadata (no binary).
+ * GET / — list images (with binary payload), paginated.
+ * Query params: `page` (1-based) and `limit` (items per page, max 100).
  */
-const listImages = async (_req, res) => {
-  const images = await imageService.listImages();
-  res.status(200).json({ success: true, data: images });
+const listImages = async (req, res) => {
+  const { page, limit } = req.query;
+  const { data, pagination } = await imageService.listImages({ page, limit });
+  res.status(200).json({ success: true, data, pagination });
 };
 
 /**
@@ -61,6 +63,9 @@ const serveImage = async (req, res) => {
   }
   res.set('Content-Type', image.mimeType);
   res.set('Content-Length', String(image.size));
+  // Image bytes are immutable for a given id — let browsers cache aggressively.
+  res.set('Cache-Control', 'public, max-age=31536000, immutable');
+  res.set('ETag', `"${image.id}-${image.updatedAt.getTime()}"`);
   res.send(image.image);
 };
 

@@ -1,6 +1,6 @@
 /**
- * Health controller — temporary endpoint to confirm the server is runnable.
- * Replace/extend with real domain controllers as features are added.
+ * Health controller — liveness endpoint for uptime checks and orchestrators
+ * (load balancers, container health probes).
  */
 
 const getHealth = (_req, res) => {
